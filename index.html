@@ -1,0 +1,1189 @@
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rebanho — Gestão de Bodes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F0E8;
+    --surface: #FEFCF7;
+    --border: #D9D0BC;
+    --accent: #5C4A1E;
+    --accent2: #8B6914;
+    --green: #2D6A4F;
+    --red: #8B2020;
+    --text: #1A1208;
+    --muted: #7A6A4A;
+    --tag-bg: #EDE5D0;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--accent);
+    color: #FFF8E7;
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  header .logo { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+  header .sub { font-size: 0.85rem; opacity: 0.7; margin-top: 2px; }
+
+  /* ── Layout ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; position: relative; }
+
+  /* ── Stats ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-card .value { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 700; color: var(--accent); margin-top: 4px; }
+  .stat-card.green .value { color: var(--green); }
+  .stat-card.red .value { color: var(--red); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+  .tab-btn {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: none;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:hover { color: var(--accent2); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Form card ── */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .form-card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--accent);
+  }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .form-group input, .form-group select, .form-group textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.8rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent2); }
+  .btn {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: #FFF8E7; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { opacity: 0.88; }
+  .btn-ghost { background: none; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { background: var(--bg); }
+
+  .form-actions { margin-top: 1rem; display: flex; gap: 8px; align-items: center; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 0.6rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(92,74,30,0.04); }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-vivo { background: #D6EFE1; color: #1A5C38; }
+  .badge-morto { background: #F5D5D5; color: #7A1A1A; }
+  .badge-macho { background: #DAE8F5; color: #1A3F6B; }
+  .badge-femea { background: #F5DAF0; color: #6B1A5C; }
+  .badge-filhote { background: var(--tag-bg); color: var(--accent); }
+
+  .action-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .action-btn:hover { background: var(--bg); color: var(--text); }
+  .action-btn.del:hover { background: #F5D5D5; border-color: var(--red); color: var(--red); }
+
+  .empty { text-align: center; padding: 3rem; color: var(--muted); font-style: italic; }
+
+  /* ── Login overlay ── */
+  .auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,18,8,0.45);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .auth-overlay.hidden { display: none; }
+
+  .auth-card {
+    width: 92%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.7rem;
+  }
+  .auth-card h2{
+    font-family: 'Syne', sans-serif;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+  }
+  .auth-card p{
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .auth-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .auth-mini{
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  /* ── Modal (editar animal) ── */
+  .modal-bg {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(26,18,8,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 480px;
+    border: 1px solid var(--border);
+  }
+  .modal h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; color: var(--accent); margin-bottom: 1.2rem; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.2rem; justify-content: flex-end; }
+  .btn-ghost:hover { background: var(--bg); }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">🐐 Rebanho</div>
+    <div class="sub">Sistema de Gestão de Bodes</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="app-content">
+    <div style="display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-bottom:14px; flex-wrap:wrap;">
+      <span id="auth-email-top" style="font-size:13px; color:var(--muted); display:none;"></span>
+      <button id="logout-btn-top" class="btn btn-ghost" style="display:none;" onclick="signOut()">Sair</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Total</div>
+        <div class="value" id="stat-total">0</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">Vivos</div>
+        <div class="value" id="stat-vivos">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Machos</div>
+        <div class="value" id="stat-machos">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Fêmeas</div>
+        <div class="value" id="stat-femeas">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Filhotes</div>
+        <div class="value" id="stat-filhotes">0</div>
+      </div>
+      <div class="stat-card red">
+        <div class="label">Mortos</div>
+        <div class="value" id="stat-mortos">0</div>
+      </div>
+    </div>
+
+    <!-- Admin panel -->
+    <div id="admin-panel" class="form-card" style="display:none; margin-top:0; width:520px; align-self:start;">
+      <h3 style="margin-bottom: 0.6rem;">👑 Admin — Usuários ativos agora</h3>
+
+      <div class="form-grid" style="margin-bottom: 0.9rem;">
+        <div class="form-group">
+          <label>Usuários ativos</label>
+          <div id="admin-active-count" class="value" style="font-family:'Syne',sans-serif; font-size:2rem; font-weight:700; color:var(--accent);">0</div>
+        </div>
+        <div class="form-group">
+          <label>Janela de atividade</label>
+          <div id="admin-active-window" style="font-size:14px; color:var(--muted); margin-top: 8px;">—</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th style="width:120px;">Vivos</th>
+              <th style="width:140px;">Mortos</th>
+              <th style="width:120px;">Total</th>
+              <th style="width:170px;">Última atividade</th>
+            </tr>
+          </thead>
+          <tbody id="admin-users-tbody"></tbody>
+        </table>
+      </div>
+
+      <div id="admin-msg" style="font-size:13px; color:var(--muted); margin-top: 10px;"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('rebanho', this)">Rebanho</button>
+      <button class="tab-btn" onclick="switchTab('adicionar', this)">+ Adicionar</button>
+      <button class="tab-btn" onclick="switchTab('mortes', this)">Registro de Mortes</button>
+    </div>
+
+    <!-- Tab: Rebanho -->
+    <div class="tab-panel active" id="tab-rebanho">
+      <div class="form-card">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input type="text" id="search" placeholder="Buscar por raça..." style="flex:1; min-width:140px;" oninput="renderTable()">
+          <input type="number" id="search-id" placeholder="Código #" style="width:130px;" oninput="renderTable()" min="1">
+          <select id="filter-status" onchange="renderTable()">
+            <option value="">Todos os status</option>
+            <option value="vivo">Vivos</option>
+            <option value="morto">Mortos</option>
+          </select>
+          <select id="filter-sex" onchange="renderTable()">
+            <option value="">Todos os sexos</option>
+            <option value="Macho">Macho</option>
+            <option value="Fêmea">Fêmea</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-card" style="padding:0; overflow:hidden;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Raça</th>
+                <th>Peso</th>
+                <th>Sexo</th>
+                <th>Nasc.</th>
+                <th>Progenitor</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Adicionar -->
+    <div class="tab-panel" id="tab-adicionar">
+      <div class="form-card">
+        <h3>Novo Animal</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Raça</label>
+            <input type="text" id="f-breed" placeholder="Ex: Boer, Saanen...">
+          </div>
+          <div class="form-group">
+            <label>Peso (kg)</label>
+            <input type="number" id="f-weight" step="0.1" min="0" placeholder="0.0">
+          </div>
+          <div class="form-group">
+            <label>Sexo *</label>
+            <select id="f-sex">
+              <option value="">Selecionar...</option>
+              <option value="Macho">Macho</option>
+              <option value="Fêmea">Fêmea</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data de Nascimento</label>
+            <input type="date" id="f-birth">
+          </div>
+          <div class="form-group">
+            <label>Progenitor (pai/mãe)</label>
+            <select id="f-parent">
+              <option value="">Nenhum</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:12px;">
+          <label>Observações</label>
+          <textarea id="f-notes" rows="2" placeholder="Notas adicionais..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="addAnimal()">Salvar Animal</button>
+          <span id="add-msg" style="font-size:13px; color:var(--green);"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Mortes -->
+    <div class="tab-panel" id="tab-mortes">
+      <div class="form-card">
+        <h3>Registrar Morte</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Animal *</label>
+            <select id="d-animal"></select>
+          </div>
+          <div class="form-group">
+            <label>Data *</label>
+            <input type="date" id="d-date">
+          </div>
+          <div class="form-group">
+            <label>Causa *</label>
+            <input type="text" id="d-cause" placeholder="Ex: Pneumonia, acidente...">
+          </div>
+          <div class="form-group">
+            <label>Evento</label>
+            <input type="text" id="d-event" placeholder="Descrição (opcional)">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-danger" onclick="registerDeath()">Registrar Morte</button>
+          <span id="death-msg" style="font-size:13px; color:var(--green);"></span>
+        </div>
+      </div>
+
+      <div class="form-card" style="padding:0; overflow:hidden;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Animal</th>
+                <th>Data</th>
+                <th>Causa</th>
+                <th>Evento</th>
+              </tr>
+            </thead>
+            <tbody id="death-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Login overlay -->
+<div id="auth-overlay" class="auth-overlay">
+  <div class="auth-card">
+    <h2>🔐 Entrar para acessar o Rebanho</h2>
+    <p>Use seu Gmail para entrar. O sistema controla acesso e evita deleção por usuários comuns.</p>
+
+    <div class="auth-row">
+      <button id="login-google-btn" class="btn btn-primary" onclick="signInWithGoogle()">Entrar com Google</button>
+    </div>
+
+    <div id="auth-mini" class="auth-mini"></div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <h3>Editar Animal</h3>
+    <input type="hidden" id="e-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Raça</label><input type="text" id="e-breed"></div>
+      <div class="form-group"><label>Peso (kg)</label><input type="number" id="e-weight" step="0.1"></div>
+      <div class="form-group">
+        <label>Sexo</label>
+        <select id="e-sex">
+          <option value="Macho">Macho</option>
+          <option value="Fêmea">Fêmea</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Nascimento</label><input type="date" id="e-birth"></div>
+    </div>
+    <div class="form-group" style="margin-top:12px;"><label>Observações</label><textarea id="e-notes" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const supabaseUrl = 'https://ysrtvitbvbamzzphdjon.supabase.co';
+  const supabaseKey = 'sb_publishable_U8nBH0CRItbrLvkptBwMsw_P30P7r0E';
+  const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+  // ── Data store ──────────────────────────────────────────────
+  let animals = [];
+  let deathLog = [];
+
+  // Mapeamento: UI usa (breed/weight/birthDate) e Supabase usa (raca/peso/nascimento)
+  function mapSupabaseAnimal(row) {
+    return {
+      id: Number(row.id ?? row.codigo ?? row._id ?? 0) || row.id || row.codigo || row._id || null,
+      breed: row.raca ?? row.breed ?? '',
+      weight: row.peso ?? row.weight ?? null,
+      sex: row.sexo ?? row.sex ?? '',
+      birthDate: row.nascimento ?? row.birthDate ?? null,
+      parentId: row.progenitor_id ?? row.parentId ?? row.parent ?? null,
+      notes: row.observacoes ?? row.notes ?? '',
+      status: row.status ?? 'vivo'
+    };
+  }
+
+  let nextId = 1;
+
+  async function carregarBodes() {
+    try {
+      if (!currentUserId) return;
+
+      const { data, error } = await _supabase
+        .from('animais')
+        .select('*')
+        .eq('user_id', currentUserId);
+
+      if (error) throw error;
+      if (!data) return;
+
+      animals = data.map(mapSupabaseAnimal).filter(a => a.id !== null);
+
+      if (animals.length === 0) {
+        animals = data.map((row, idx) => ({
+          id: idx + 1,
+          breed: row.raca ?? '',
+          weight: row.peso ?? null,
+          sex: row.sexo ?? '',
+          birthDate: row.nascimento ?? null,
+          parentId: row.progenitor_id ?? row.parentId ?? null,
+          notes: row.observacoes ?? row.observacoes ?? row.notes ?? '',
+          status: row.status ?? 'vivo'
+        }));
+      }
+
+      nextId = Math.max(1, ...animals.map(a => Number(a.id) || 0)) + 1;
+      renderTable();
+      updateStats();
+      populateParentSelect();
+      populateDeathAnimalSelect();
+    } catch (err) {
+      console.error('Erro ao carregar animais da nuvem:', err);
+      const msg = document.getElementById('add-msg');
+      if (msg) msg.textContent = `Supabase: erro ao carregar (${String(err?.message || err)}).`;
+    }
+  }
+
+  const ADMIN_EMAIL = 'viniciuslitfma12@gmail.com';
+  let isAdmin = false;
+  let currentUserId = null;
+
+  // ── Presence (Supabase: user_sessions) ────────────────────────
+  const ADMIN_SESSION_WINDOW_MINUTES = 5; // janela de “ativo”
+  const PRESENCE_HEARTBEAT_MS = 20000; // 20s
+
+  // Tabela/colunas do seu Supabase (conforme Table Editor)
+  const PRESENCE_TABLE = 'user_sessions';
+  const PRESENCE_USER_ID_COL = 'usuario_id';
+  const PRESENCE_EMAIL_COL = 'email';
+  const PRESENCE_LAST_SEEN_COL = 'ultimo_visto';
+
+  let presenceTimer = null;
+
+  function getActiveCutoffIso() {
+    const cutoff = new Date(Date.now() - ADMIN_SESSION_WINDOW_MINUTES * 60 * 1000);
+    return cutoff.toISOString();
+  }
+
+  function stopPresenceHeartbeat() {
+    if (presenceTimer) clearInterval(presenceTimer);
+    presenceTimer = null;
+  }
+
+  async function upsertSessionPresence(email) {
+    if (!currentUserId) return;
+
+    const lastSeen = new Date().toISOString();
+    const { error } = await _supabase
+      .from(PRESENCE_TABLE)
+      .upsert(
+        { [PRESENCE_USER_ID_COL]: currentUserId, [PRESENCE_EMAIL_COL]: email || '', [PRESENCE_LAST_SEEN_COL]: lastSeen },
+        { onConflict: PRESENCE_USER_ID_COL }
+      );
+
+    if (error) console.warn('Presence upsert erro:', error);
+  }
+
+  async function startPresenceHeartbeat(email) {
+    stopPresenceHeartbeat();
+    await upsertSessionPresence(email);
+
+    presenceTimer = setInterval(() => {
+      void upsertSessionPresence(email);
+    }, PRESENCE_HEARTBEAT_MS);
+  }
+
+  async function markOffline(email) {
+    stopPresenceHeartbeat();
+    if (!currentUserId) return;
+
+    const oldTs = new Date(
+      Date.now() - ADMIN_SESSION_WINDOW_MINUTES * 60 * 1000 - 1000
+    ).toISOString();
+
+    const { error } = await _supabase
+      .from(PRESENCE_TABLE)
+      .upsert(
+        { [PRESENCE_USER_ID_COL]: currentUserId, [PRESENCE_EMAIL_COL]: email || '', [PRESENCE_LAST_SEEN_COL]: oldTs },
+        { onConflict: PRESENCE_USER_ID_COL }
+      );
+
+    if (error) console.warn('Presence markOffline erro:', error);
+  }
+
+  async function loadAdminActiveUsers() {
+    if (!isAdmin) return;
+
+    const adminPanel = document.getElementById('admin-panel');
+    const tbody = document.getElementById('admin-users-tbody');
+    const countEl = document.getElementById('admin-active-count');
+    const windowEl = document.getElementById('admin-active-window');
+    const msgEl = document.getElementById('admin-msg');
+
+    if (adminPanel) adminPanel.style.display = 'block';
+    if (windowEl) windowEl.textContent = `${ADMIN_SESSION_WINDOW_MINUTES} min`;
+
+    const cutoffIso = getActiveCutoffIso();
+
+    try {
+      const { data: sessions, error: sessionsError } = await _supabase
+        .from(PRESENCE_TABLE)
+        .select(`${PRESENCE_USER_ID_COL},${PRESENCE_EMAIL_COL},${PRESENCE_LAST_SEEN_COL}`)
+        .gte(PRESENCE_LAST_SEEN_COL, cutoffIso)
+        .order(PRESENCE_LAST_SEEN_COL, { ascending: false });
+
+      if (sessionsError) throw sessionsError;
+
+      const activeCount = Array.isArray(sessions) ? sessions.length : 0;
+      if (countEl) countEl.textContent = String(activeCount);
+
+      if (!sessions || sessions.length === 0) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhum usuário ativo agora.</td></tr>`;
+        if (msgEl) msgEl.textContent = '';
+        return;
+      }
+
+      const userIds = sessions.map(s => s[PRESENCE_USER_ID_COL]).filter(Boolean);
+      const idsIn = userIds.length ? userIds : ['00000000-0000-0000-0000-000000000000'];
+
+      const { data: agg, error: aggError } = await _supabase
+        .from('animais')
+        .select('user_id,status')
+        .in('user_id', idsIn);
+
+      if (aggError) throw aggError;
+
+      const countsByUser = new Map();
+      for (const row of (agg || [])) {
+        const key = row.user_id;
+        if (!countsByUser.has(key)) countsByUser.set(key, { vivo: 0, morto: 0, total: 0 });
+        const bucket = countsByUser.get(key);
+        bucket.total += 1;
+        if (row.status === 'morto') bucket.morto += 1;
+        else bucket.vivo += 1;
+      }
+
+      if (tbody) {
+        tbody.innerHTML = sessions.map(s => {
+          const uid = s[PRESENCE_USER_ID_COL];
+          const c = countsByUser.get(uid) || { vivo: 0, morto: 0, total: 0 };
+          const last = s[PRESENCE_LAST_SEEN_COL] ? new Date(s[PRESENCE_LAST_SEEN_COL]).toLocaleString('pt-BR') : '—';
+          return `
+            <tr>
+              <td>${s[PRESENCE_EMAIL_COL] || '—'}</td>
+              <td>${c.vivo}</td>
+              <td>${c.morto}</td>
+              <td>${c.total}</td>
+              <td style="color:var(--muted); font-size:13px;">${last}</td>
+            </tr>`;
+        }).join('');
+      }
+
+      if (msgEl) msgEl.textContent = '';
+    } catch (err) {
+      console.error('Erro admin active users:', err);
+      if (msgEl) msgEl.textContent = `Erro ao carregar presença: ${String(err?.message || err)}`;
+    }
+  }
+
+  function setAuthOverlay({ show, email, admin }) {
+    const overlay = document.getElementById('auth-overlay');
+    const app = document.getElementById('app-content');
+    const emailTop = document.getElementById('auth-email-top');
+    const logoutTop = document.getElementById('logout-btn-top');
+    const mini = document.getElementById('auth-mini');
+
+    isAdmin = !!admin;
+
+    if (overlay) overlay.classList.toggle('hidden', !show);
+    if (app) app.style.display = show ? 'none' : 'block';
+
+    if (emailTop) {
+      emailTop.textContent = email ? `Logado: ${email}` : '';
+      emailTop.style.display = email ? 'inline' : 'none';
+    }
+    if (logoutTop) logoutTop.style.display = email ? 'inline-block' : 'none';
+
+    if (mini) {
+      mini.textContent = admin
+        ? 'Admin: pode deletar informações.'
+        : email ? 'Usuário: deleção bloqueada.' : '';
+    }
+  }
+
+  async function refreshSession() {
+    const { data: sessionData, error } = await _supabase.auth.getSession();
+    if (error) {
+      console.error('Erro ao obter sessão:', error);
+      setAuthOverlay({ show: true, email: '', admin: false });
+      currentUserId = null;
+      return;
+    }
+
+    const user = sessionData?.session?.user;
+    if (!user?.email) {
+      setAuthOverlay({ show: true, email: '', admin: false });
+      currentUserId = null;
+      return;
+    }
+
+    // auth.uid() equivalente (uuid)
+    currentUserId = user.id;
+
+    const admin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    setAuthOverlay({ show: false, email: user.email, admin });
+
+    // Presença: mantém usuário como "ativo"
+    await startPresenceHeartbeat(user.email);
+
+    // Admin: atualiza painel
+    if (admin) {
+      await loadAdminActiveUsers();
+      // polling automático desativado (função ainda não definida)
+    }
+
+    await carregarBodes();
+  }
+
+  async function signInWithGoogle() {
+    const redirectTo = 'https://gestaobodes.netlify.app/';
+    const { error } = await _supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo }
+    });
+
+    if (error) {
+      console.error('Erro ao iniciar OAuth Google:', error);
+      alert(`Supabase OAuth error: ${error.message}`);
+    }
+  }
+
+  async function signOut() {
+    try {
+      // marca offline antes de derrubar a sessão
+      await markOffline();
+    } catch (e) {
+      // não quebra logout
+      console.warn('markOffline falhou:', e);
+    }
+
+    stopPresenceHeartbeat();
+
+    // se for admin, para polling do painel
+    if (isAdmin === true) {
+      // loadAdminPresencePolling usa adminPresenceTimer; se existir, interrompe via flag local
+      // (a função stopAdminPresencePolling ainda não está no estado atual, então só pare heartbeat de usuário)
+    }
+
+    const { error } = await _supabase.auth.signOut();
+    if (error) alert(error.message);
+
+    setAuthOverlay({ show: true, email: '', admin: false });
+  }
+
+  // ── Tabs ────────────────────────────────────────────────────
+  function switchTab(tabName, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tabName).classList.add('active');
+    if (btn) btn.classList.add('active');
+    if (tabName === 'adicionar') populateParentSelect();
+    if (tabName === 'mortes') { populateDeathAnimalSelect(); renderDeathTable(); }
+  }
+
+  // ── Stats ───────────────────────────────────────────────────
+  function updateStats() {
+    const vivos = animals.filter(a => a.status === 'vivo');
+    document.getElementById('stat-total').textContent = animals.length;
+    document.getElementById('stat-vivos').textContent = vivos.length;
+    document.getElementById('stat-machos').textContent = vivos.filter(a => a.sex === 'Macho').length;
+    document.getElementById('stat-femeas').textContent = vivos.filter(a => a.sex === 'Fêmea').length;
+    document.getElementById('stat-filhotes').textContent = vivos.filter(a => a.parentId).length;
+    document.getElementById('stat-mortos').textContent = animals.filter(a => a.status === 'morto').length;
+  }
+
+  // ── Table ───────────────────────────────────────────────────
+  function renderTable() {
+    const canDelete = isAdmin === true;
+
+    const qId = (document.getElementById('search-id').value || '').trim();
+    const q = (document.getElementById('search').value || '').toLowerCase();
+    const fs = document.getElementById('filter-status').value;
+    const fx = document.getElementById('filter-sex').value;
+
+    const filtered = animals.filter(a => {
+      const matchBreed = (a.breed || '').toLowerCase().includes(q);
+      const matchId = !qId || String(a.id) === qId;
+      const okS = !fs || a.status === fs;
+      const okX = !fx || a.sex === fx;
+      return matchBreed && matchId && okS && okX;
+    });
+
+    const tbody = document.getElementById('tbody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" class="empty">Nenhum animal encontrado.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(a => {
+      const parent = a.parentId ? animals.find(x => String(x.id) === String(a.parentId)) : null;
+      const statusBadge = a.status === 'vivo'
+        ? `<span class="badge badge-vivo">Vivo</span>`
+        : `<span class="badge badge-morto">Morto</span>`;
+      const sexBadge = a.sex === 'Macho'
+        ? `<span class="badge badge-macho">Macho</span>`
+        : `<span class="badge badge-femea">Fêmea</span>`;
+      const filhoteBadge = parent ? `<span class="badge badge-filhote" style="margin-left:4px;">Filhote</span>` : '';
+      const parentCell = parent ? `<span style="color:var(--muted); font-size:13px;">Bode #${parent.id}</span>` : '—';
+      const editBtn = a.status === 'vivo'
+        ? `<button class="action-btn" onclick="openEdit(${a.id})">✏ Editar</button>`
+        : '';
+
+      const deathBtn = a.status === 'vivo'
+        ? `<button class="action-btn del" onclick="openDeathQuick(${a.id})">☠ Morte</button>` : '';
+
+      const deleteBtn = canDelete
+        ? `<button class="action-btn del" onclick="deleteAnimal(${a.id})">🗑</button>`
+        : '';
+
+      return `
+        <tr>
+          <td style="color:var(--muted); font-size:12px;">${a.id}</td>
+          <td>${a.breed || '—'}${filhoteBadge}</td>
+          <td>${a.weight !== null && a.weight !== undefined ? a.weight + ' kg' : '—'}</td>
+          <td>${sexBadge}</td>
+          <td style="font-size:13px; color:var(--muted);">${a.birthDate || '—'}</td>
+          <td>${parentCell}</td>
+          <td>${statusBadge}</td>
+          <td style="display:flex; gap:4px; flex-wrap:wrap;">
+            ${editBtn}
+            ${deathBtn}
+            ${deleteBtn}
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  // ── Add animal ───────────────────────────────────────────────
+  function addAnimal() {
+    const sex = document.getElementById('f-sex').value;
+    if (!sex) { alert('Selecione o sexo do animal.'); return; }
+
+    // tempId apenas para UI (id real vem do banco)
+    const tempId = `tmp_${Date.now()}_${nextId++}`;
+
+    const animal = {
+      id: null,
+      tempId,
+      breed: document.getElementById('f-breed').value.trim(),
+      weight: parseFloat(document.getElementById('f-weight').value) || null,
+      sex: sex,
+      birthDate: document.getElementById('f-birth').value || null,
+      parentId: parseInt(document.getElementById('f-parent').value) || null,
+      notes: document.getElementById('f-notes').value.trim(),
+      status: 'vivo'
+    };
+
+    animals.push(animal);
+    updateStats();
+    renderTable();
+    populateDeathAnimalSelect();
+
+    // limpar form
+    document.getElementById('f-breed').value = '';
+    document.getElementById('f-weight').value = '';
+    document.getElementById('f-birth').value = '';
+    document.getElementById('f-notes').value = '';
+    document.getElementById('f-sex').value = '';
+    document.getElementById('f-parent').value = '';
+
+    const msg = document.getElementById('add-msg');
+    msg.textContent = `⏳ Salvando...`;
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
+
+    saveToSupabase(animal);
+  }
+
+  async function saveToSupabase(animal) {
+    try {
+      if (!currentUserId) throw new Error('Usuário não autenticado.');
+
+      // Não enviar "id": deixa o banco gerar o PRIMARY KEY sem conflitos
+      const { data, error } = await _supabase
+        .from('animais')
+        .insert([{
+          user_id: currentUserId,
+          raca: animal.breed,
+          peso: animal.weight,
+          sexo: animal.sex,
+          nascimento: animal.birthDate,
+          progenitor_id: animal.parentId,
+          observacoes: animal.notes,
+          status: animal.status
+        }])
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Erro ao enviar para a nuvem:', error.message);
+        const msg = document.getElementById('add-msg');
+        if (msg) msg.textContent = `Supabase: erro ao salvar (${error.message}).`;
+        // remove item temporário da lista
+        animals = animals.filter(a => a.tempId !== animal.tempId);
+        renderTable();
+        updateStats();
+        populateDeathAnimalSelect();
+        return;
+      }
+
+      // Atualiza o id real do animal na UI
+      const realId = data?.id ?? null;
+      const item = animals.find(a => a.tempId === animal.tempId);
+      if (item) item.id = realId;
+
+      // Mensagem e recarga
+      const msg = document.getElementById('add-msg');
+      if (msg) msg.textContent = realId ? `✓ Bode #${realId} adicionado com sucesso!` : `✓ Bode adicionado com sucesso!`;
+      setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+
+      // recarrega para garantir consistência (ex: filtros/stats)
+      await carregarBodes();
+    } catch (err) {
+      console.error('Erro ao sincronizar com a nuvem:', err);
+      const msg = document.getElementById('add-msg');
+      if (msg) msg.textContent = `Supabase: erro ao salvar (${String(err?.message || err)}).`;
+      animals = animals.filter(a => a.tempId !== animal.tempId);
+      renderTable();
+      updateStats();
+      populateDeathAnimalSelect();
+    }
+  }
+
+  // ── Delete ───────────────────────────────────────────────────
+  async function deleteAnimal(id) {
+    if (isAdmin !== true) {
+      alert('Apenas administradores podem deletar.');
+      return;
+    }
+    if (!confirm('Remover este animal permanentemente?')) return;
+    if (!currentUserId) throw new Error('Usuário não autenticado.');
+
+    animals = animals.filter(a => a.id !== id);
+    updateStats();
+    renderTable();
+
+    try {
+      const { error } = await _supabase
+        .from('animais')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', currentUserId);
+
+      if (error) {
+        console.error('Erro ao deletar na nuvem:', error.message);
+        const msg = document.getElementById('add-msg');
+        if (msg) msg.textContent = `Supabase: erro ao deletar (${error.message}).`;
+      }
+    } catch (err) {
+      console.error('Erro ao deletar na nuvem:', err);
+      const msg = document.getElementById('add-msg');
+      if (msg) msg.textContent = `Supabase: erro ao deletar (${String(err?.message || err)}).`;
+    }
+
+    populateParentSelect();
+    populateDeathAnimalSelect();
+  }
+
+  // ── Edit modal ───────────────────────────────────────────────
+  function openEdit(id) {
+    const a = animals.find(x => x.id === id);
+    if (!a) return;
+    document.getElementById('e-id').value = a.id;
+    document.getElementById('e-breed').value = a.breed || '';
+    document.getElementById('e-weight').value = a.weight ?? '';
+    document.getElementById('e-sex').value = a.sex;
+    document.getElementById('e-birth').value = a.birthDate || '';
+    document.getElementById('e-notes').value = a.notes || '';
+    document.getElementById('edit-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+  }
+
+  async function saveEdit() {
+    const id = parseInt(document.getElementById('e-id').value);
+    const a = animals.find(x => x.id === id);
+    if (!a) return;
+    if (!currentUserId) throw new Error('Usuário não autenticado.');
+
+    a.breed = document.getElementById('e-breed').value.trim();
+    a.weight = parseFloat(document.getElementById('e-weight').value) || null;
+    a.sex = document.getElementById('e-sex').value;
+    a.birthDate = document.getElementById('e-birth').value || null;
+    a.notes = document.getElementById('e-notes').value.trim();
+
+    updateStats();
+    renderTable();
+    closeModal();
+
+    try {
+      const { error } = await _supabase
+        .from('animais')
+        .update({
+          raca: a.breed,
+          peso: a.weight,
+          sexo: a.sex,
+          nascimento: a.birthDate,
+          observacoes: a.notes
+        })
+        .eq('id', id)
+        .eq('user_id', currentUserId);
+
+      if (error) {
+        console.error('Erro ao atualizar na nuvem:', error.message);
+        const msg = document.getElementById('add-msg');
+        if (msg) msg.textContent = `Supabase: erro ao editar (${error.message}).`;
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar na nuvem:', err);
+      const msg = document.getElementById('add-msg');
+      if (msg) msg.textContent = `Supabase: erro ao editar (${String(err?.message || err)}).`;
+    }
+  }
+
+  // ── Death ────────────────────────────────────────────────────
+  function populateDeathAnimalSelect() {
+    const sel = document.getElementById('d-animal');
+    const vivos = animals.filter(a => a.status === 'vivo');
+    sel.innerHTML = vivos.length
+      ? vivos.map(a => `<option value="${a.id}">Bode #${a.id} — ${a.breed || 'sem raça'} (${a.sex})</option>`).join('')
+      : '<option value="">Nenhum animal vivo</option>';
+  }
+
+  function openDeathQuick(id) {
+    switchTab('mortes', document.querySelectorAll('.tab-btn')[2]);
+    populateDeathAnimalSelect();
+    renderDeathTable();
+    document.getElementById('d-animal').value = id;
+    document.getElementById('d-date').value = new Date().toISOString().split('T')[0];
+  }
+
+  async function registerDeath() {
+    const animalId = parseInt(document.getElementById('d-animal').value);
+    const cause = document.getElementById('d-cause').value.trim();
+    const deathDate = document.getElementById('d-date').value;
+
+    if (!animalId || !cause || !deathDate) { alert('Preencha animal, data e causa.'); return; }
+    if (!currentUserId) throw new Error('Usuário não autenticado.');
+
+    const a = animals.find(x => x.id === animalId);
+    if (!a) return;
+
+    a.status = 'morto';
+
+    deathLog.unshift({
+      id: deathLog.length + 1,
+      animalId: animalId,
+      animalName: `Bode #${a.id}`,
+      date: deathDate,
+      cause: cause,
+      event: document.getElementById('d-event').value.trim() || `Morte do Bode #${a.id}`
+    });
+
+    try {
+      const { error } = await _supabase
+        .from('animais')
+        .update({ status: 'morto' })
+        .eq('id', animalId)
+        .eq('user_id', currentUserId);
+
+      if (error) {
+        console.error('Erro ao atualizar status na nuvem:', error.message);
+        const msg = document.getElementById('death-msg');
+        if (msg) msg.textContent = `Supabase: erro ao registrar morte (${error.message}).`;
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar status na nuvem:', err);
+      const msg = document.getElementById('death-msg');
+      if (msg) msg.textContent = `Supabase: erro ao registrar morte (${String(err?.message || err)}).`;
+    }
+
+    updateStats();
+    renderTable();
+    renderDeathTable();
+    populateDeathAnimalSelect();
+
+    document.getElementById('d-cause').value = '';
+    document.getElementById('d-event').value = '';
+
+    const msg = document.getElementById('death-msg');
+    msg.textContent = `✓ Morte do Bode #${a.id} registrada.`;
+    setTimeout(() => msg.textContent = '', 4000);
+  }
+
+  function renderDeathTable() {
+    const tbody = document.getElementById('death-tbody');
+    if (deathLog.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhuma morte registrada.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = deathLog.map(d => `
+      <tr>
+        <td style="color:var(--muted); font-size:12px;">${d.id}</td>
+        <td><strong>${d.animalName}</strong></td>
+        <td style="font-size:13px;">${d.date}</td>
+        <td>${d.cause}</td>
+        <td style="color:var(--muted); font-size:13px;">${d.event}</td>
+      </tr>`).join('');
+  }
+
+  // ── Parent select ────────────────────────────────────────────
+  function populateParentSelect() {
+    const sel = document.getElementById('f-parent');
+    sel.innerHTML = '<option value="">Nenhum</option>' +
+      animals.filter(a => a.status === 'vivo')
+        .map(a => `<option value="${a.id}">Bode #${a.id} — ${a.breed || 'sem raça'} (${a.sex})</option>`).join('');
+  }
+
+  // ── Init ─────────────────────────────────────────────────────
+  // Por padrão, mostra login overlay
+  setAuthOverlay({ show: true, email: '', admin: false });
+  updateStats();
+  renderTable();
+  document.getElementById('d-date').value = new Date().toISOString().split('T')[0];
+
+  // Detecta sessão e libera o app
+  refreshSession();
+</script>
+</body>
+</html>
